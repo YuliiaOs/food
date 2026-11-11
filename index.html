@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Раціон 1610</title>
+<meta name="theme-color" content="#c96442">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Раціон">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+  :root {
+    --bg: #faf9f7;
+    --card-bg: #ffffff;
+    --border: #e6e3dd;
+    --text: #2b2a28;
+    --text-secondary: #767470;
+    --accent: #c96442;
+    --track-bg: #efece6;
+    --protein-color: #2e86ab;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .top-totals { display: flex; flex-direction: column; gap: 2px; }
+  .total-kcal { font-size: 26px; font-weight: 600; line-height: 1.1; }
+  .total-protein { font-size: 15px; color: var(--protein-color); font-weight: 500; }
+  .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  button.reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  button.reset:active { background: var(--track-bg); }
+  .category {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .cat-header-left { display: flex; align-items: center; gap: 10px; }
+  .cat-badge {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+  .cat-name { font-size: 15px; font-weight: 600; }
+  .cat-right { text-align: right; }
+  .cat-meta { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+  .cat-protein { font-size: 11.5px; color: var(--protein-color); white-space: nowrap; }
+  .progress-track {
+    height: 5px;
+    background: var(--track-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .progress-fill { height: 100%; transition: width 0.2s; }
+  .target-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 10px; font-size: 12.5px; color: var(--text-secondary);
+  }
+  .target-row input {
+    width: 52px; height: 26px; font-size: 16px;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 0 6px; text-align: center;
+  }
+  .product {
+    position: relative;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--track-bg);
+    overflow: hidden;
+  }
+  .product-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    z-index: 0;
+    transition: width 0.2s;
+  }
+  .product-content { position: relative; z-index: 1; }
+  .product-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 6px; gap: 8px;
+  }
+  .product-name { font-size: 13.5px; font-weight: 500; }
+  .product-info { text-align: right; flex-shrink: 0; }
+  .product-limit { font-size: 12px; color: var(--text-secondary); display: block; }
+  .product-protein-full { font-size: 11px; color: var(--protein-color); display: block; }
+  .product-controls { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .gram-input-wrap {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 4px 4px 10px;
+    flex: 1;
+  }
+  .gram-input-wrap input[type="number"] {
+    border: none; outline: none; font-size: 16px;
+    width: 100%; background: transparent; color: var(--text);
+    -moz-appearance: textfield;
+  }
+  .gram-input-wrap input[type="number"]::-webkit-outer-spin-button,
+  .gram-input-wrap input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .unit-label { font-size: 12px; color: var(--text-secondary); padding-right: 6px; white-space: nowrap; }
+  .max-btn {
+    border: 1px solid var(--border); background: var(--card-bg); color: var(--text);
+    font-size: 11.5px; border-radius: 6px; padding: 6px 9px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .max-btn:active { opacity: 0.7; }
+  .product-eaten-protein { font-size: 11.5px; color: var(--protein-color); margin-top: 4px; }
+  .remaining-note { font-size: 11.5px; margin-top: 4px; color: var(--text-secondary); }
+  .remaining-note.over { color: #c0392b; font-weight: 600; }
+  .chevron { font-size: 11px; color: var(--text-secondary); margin-left: 4px; }
+  footer { text-align: center; font-size: 11px; color: var(--text-secondary); margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-totals">
+    <div class="total-kcal" id="total-kcal">0 / 0 ккал</div>
+    <div class="total-protein" id="total-protein">0 г білка</div>
+    <div class="subtitle" id="date-label"></div>
+  </div>
+  <button class="reset" id="reset-btn">Скинути день</button>
+</div>
+
+<div id="categories"></div>
+<footer>Дані зберігаються локально на цьому пристрої.</footer>
+
+<script>
+const CATEGORY_META = {
+  A:  { letter: 'А', name: 'Гарніри / крупи',   color: '#5b8def', kcalEq: 220 },
+  B:  { letter: 'Б', name: 'Білки',             color: '#e0644b', kcalEq: 370 },
+  V:  { letter: 'В', name: 'Овочі / гриби',     color: '#4caf7d', kcalEq: 120 },
+  G:  { letter: 'Г', name: 'Жири, олії, соуси', color: '#e0a93a', kcalEq: 130 },
+  D:  { letter: 'Д', name: 'Молочні продукти',  color: '#8a6fd1', kcalEq: 165 },
+  E:  { letter: 'Е', name: 'Фрукти та ягоди',   color: '#e0599a', kcalEq: 150 },
+  YE: { letter: 'Є', name: 'Горіхи та насіння', color: '#6b6b6b', kcalEq: 55  },
+  ZH: { letter: 'Ж', name: 'Вільний вибір',     color: '#e08a3a', kcalEq: 400 }
+};
+
+// grams — повна норма продукту; protein — білок (г) у повній нормі
+const PRODUCTS = [
+  { id:'a1',  cat:'A',  name:'Бобові',                              grams:80,  protein:7.0 },
+  { id:'a2',  cat:'A',  name:'Картопля',                            grams:285, protein:5.7 },
+  { id:'a3',  cat:'A',  name:'Кукурудза свіжа',                     grams:250, protein:8.3 },
+  { id:'a4',  cat:'A',  name:'Рис (не шліфований)',                  grams:65,  protein:4.9 },
+  { id:'a5',  cat:'A',  name:'Будь-яка крупа',                      grams:65,  protein:6.5 },
+  { id:'a6',  cat:'A',  name:'Цільнозернове борошно',               grams:65,  protein:7.2 },
+  { id:'a7',  cat:'A',  name:'Хлібці',                              grams:65,  protein:6.5 },
+  { id:'a8',  cat:'A',  name:'Цільнозерновий хліб',                 grams:85,  protein:7.7 },
+  { id:'a9',  cat:'A',  name:'Макарони т.с.',                       grams:65,  protein:7.8 },
+  { id:'a10', cat:'A',  name:'Лаваш',                               grams:90,  protein:7.2 },
+
+  { id:'b1',  cat:'B',  name:'Телятина',                            grams:215, protein:43.0 },
+  { id:'b2',  cat:'B',  name:'Печінка',                             grams:280, protein:50.4 },
+  { id:'b3',  cat:'B',  name:'Куряче або індиче філе',              grams:330, protein:72.6 },
+  { id:'b4',  cat:'B',  name:'Риба (до 5% жиру)',                   grams:330, protein:66.0 },
+  { id:'b5',  cat:'B',  name:'Риба (від 5% жиру)',                  grams:215, protein:38.7 },
+  { id:'b6',  cat:'B',  name:'Яйця (цілі)', unit:'шт',              grams:4,   protein:25.0 },
+  { id:'b7',  cat:'B',  name:'Морепродукти',                        grams:370, protein:74.0 },
+
+  { id:'v1',  cat:'V',  name:'Овочі (квашені також і зелень)',      grams:600, protein:9.0  },
+  { id:'v2',  cat:'V',  name:'Гриби',                               grams:600, protein:21.0 },
+
+  { id:'g1',  cat:'G',  name:'Будь-яка олія (рекомендуємо лляну)', grams:14,  protein:0.0  },
+  { id:'g2',  cat:'G',  name:'Майонез',                             grams:20,  protein:0.2  },
+  { id:'g3',  cat:'G',  name:'Авокадо',                             grams:75,  protein:1.5  },
+  { id:'g4',  cat:'G',  name:'Оливки',                              grams:105, protein:1.1  },
+  { id:'g5',  cat:'G',  name:'Гірчиця',                             grams:100, protein:10.0 },
+  { id:'g6',  cat:'G',  name:'Кетчуп',                              grams:65,  protein:1.3  },
+
+  { id:'d1',  cat:'D',  name:'Сир кисломолочний нежирний (0.2%)',  grams:205, protein:36.9 },
+  { id:'d2',  cat:'D',  name:"Сири м'які, тверді, плавлені",       grams:45,  protein:9.0  },
+  { id:'d3',  cat:'D',  name:'Сметана 15%',                         grams:110, protein:8.8  },
+  { id:'d4',  cat:'D',  name:'Кефір 1%',                            grams:355, protein:11.7 },
+  { id:'d5',  cat:'D',  name:'Несолодкий йогурт 1% жиру',          grams:340, protein:11.6 },
+  { id:'d6',  cat:'D',  name:'Молоко 1%',                           grams:360, protein:11.5 },
+
+  { id:'e1',  cat:'E',  name:'Фрукти та ягоди',                    grams:300, protein:3.0 },
+  { id:'e2',  cat:'E',  name:'Банани, виноград, хурма',             grams:155, protein:1.6 },
+
+  { id:'ye1', cat:'YE', name:'Будь-які горіхи (рекомендуємо грецькі)', grams:8, protein:1.6 },
+  { id:'ye2', cat:'YE', name:'Насіння',                             grams:8,   protein:1.6 },
+
+  { id:'zh1', cat:'ZH', name:'Будь-що (солодощі, снеки, ковбаса тощо)', grams:80, protein:4.0 },
+  { id:'zh2', cat:'ZH', name:'Фрукти та ягоди',                    grams:800, protein:8.0 },
+  { id:'zh3', cat:'ZH', name:'Банани',                              grams:420, protein:4.2 }
+];
+
+const STORAGE_KEY = 'racion-1610-v1';
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function round1(n) { return Math.round(n * 10) / 10; }
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
+let state = { targets: {}, eatenGrams: {}, day: todayKey() };
+let collapsed = {};
+Object.keys(CATEGORY_META).forEach(c => { state.targets[c] = 100; });
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.day !== todayKey()) { parsed.eatenGrams = {}; parsed.day = todayKey(); }
+      state = Object.assign(state, parsed);
+    }
+  } catch (e) {}
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function categoryTargetKcal(cat) {
+  return CATEGORY_META[cat].kcalEq * ((state.targets[cat] != null ? state.targets[cat] : 100) / 100);
+}
+function productPct(p) {
+  return p.grams > 0 ? ((state.eatenGrams[p.id] || 0) / p.grams) * 100 : 0;
+}
+function categoryUsedKcal(cat) {
+  return PRODUCTS.filter(p => p.cat === cat)
+    .reduce((s, p) => s + CATEGORY_META[cat].kcalEq * (productPct(p) / 100), 0);
+}
+function productEatenProtein(p) {
+  const eaten = state.eatenGrams[p.id] || 0;
+  return p.grams > 0 ? (eaten / p.grams) * p.protein : 0;
+}
+function totalEatenProtein() {
+  return PRODUCTS.reduce((s, p) => s + productEatenProtein(p), 0);
+}
+function productRemainingGrams(p) {
+  const targetKcal = categoryTargetKcal(p.cat);
+  const usedKcal = categoryUsedKcal(p.cat);
+  const fraction = targetKcal > 0 ? Math.max(targetKcal - usedKcal, 0) / targetKcal : 0;
+  return Math.max(p.grams * fraction, 0);
+}
+function totalsAcrossDay() {
+  return Object.keys(CATEGORY_META).reduce((s, cat) => s + categoryUsedKcal(cat), 0);
+}
+function dailyTotalTarget() {
+  return Object.keys(CATEGORY_META).reduce((s, c) => s + categoryTargetKcal(c), 0);
+}
+
+function setEatenGrams(id, grams) {
+  state.eatenGrams[id] = Math.max(0, grams || 0);
+  saveState(); render();
+}
+function setTarget(cat, val) {
+  state.targets[cat] = Math.max(0, val);
+  saveState(); render();
+}
+
+let resetConfirmPending = false;
+let resetConfirmTimeout = null;
+function resetDay() {
+  const btn = document.getElementById('reset-btn');
+  if (!resetConfirmPending) {
+    resetConfirmPending = true;
+    btn.textContent = 'Точно скинути?';
+    btn.style.cssText = 'background:#c0392b;color:white;border-color:#c0392b;';
+    resetConfirmTimeout = setTimeout(() => {
+      resetConfirmPending = false;
+      btn.textContent = 'Скинути день';
+      btn.style.cssText = '';
+    }, 3000);
+    return;
+  }
+  clearTimeout(resetConfirmTimeout);
+  resetConfirmPending = false;
+  btn.textContent = 'Скинути день';
+  btn.style.cssText = '';
+  state.eatenGrams = {};
+  saveState(); render();
+}
+function toggleCollapse(cat) { collapsed[cat] = !collapsed[cat]; render(); }
+
+function render() {
+  // якщо застосунок лишався відкритим через північ — починаємо новий день
+  if (state.day !== todayKey()) { state.eatenGrams = {}; state.day = todayKey(); saveState(); }
+
+  document.getElementById('total-kcal').textContent =
+    Math.round(totalsAcrossDay()) + ' / ' + Math.round(dailyTotalTarget()) + ' ккал';
+  document.getElementById('total-protein').textContent =
+    round1(totalEatenProtein()) + ' г білка';
+  document.getElementById('date-label').textContent =
+    new Date().toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) + ' · ціль ~1610 ккал';
+
+  const container = document.getElementById('categories');
+  let html = '';
+
+  Object.keys(CATEGORY_META).forEach(cat => {
+    const meta = CATEGORY_META[cat];
+    const targetKcal = categoryTargetKcal(cat);
+    const used = categoryUsedKcal(cat);
+    const usedPct = targetKcal > 0 ? Math.min(100, (used / targetKcal) * 100) : 0;
+    const prods = PRODUCTS.filter(p => p.cat === cat);
+    const catProtein = prods.reduce((s, p) => s + productEatenProtein(p), 0);
+    const isCollapsed = !!collapsed[cat];
+
+    html += '<div class="category">';
+    html += '<div class="cat-header" data-toggle-cat="' + cat + '">';
+    html += '<div class="cat-header-left">';
+    html += '<div class="cat-badge" style="background:' + meta.color + '">' + meta.letter + '</div>';
+    html += '<div class="cat-name">' + meta.name + '</div>';
+    html += '</div>';
+    html += '<div class="cat-right">';
+    html += '<div class="cat-meta">' + Math.round(used) + ' / ' + Math.round(targetKcal) + ' ккал<span class="chevron">' + (isCollapsed ? '▾' : '▴') + '</span></div>';
+    html += '<div class="cat-protein">' + round1(catProtein) + ' г білка</div>';
+    html += '</div></div>';
+    html += '<div class="progress-track"><div class="progress-fill" style="width:' + usedPct + '%;background:' + meta.color + '"></div></div>';
+
+    if (!isCollapsed) {
+      html += '<div class="target-row">денна ціль категорії <input type="number" min="0" step="5" inputmode="decimal" value="' +
+        (state.targets[cat] != null ? state.targets[cat] : 100) + '" data-target-cat="' + cat + '"> %</div>';
+
+      prods.forEach(p => {
+        const eaten = state.eatenGrams[p.id] || 0;
+        const remGrams = productRemainingGrams(p);
+        const unit = p.unit || 'г';
+        const pct = Math.min(100, productPct(p));
+        const fillColor = hexToRgba(meta.color, 0.22);
+        const eatenProtein = round1(productEatenProtein(p));
+
+        const remGramsBeforeThis = (function() {
+          const tKcal = categoryTargetKcal(p.cat);
+          const usedOthers = categoryUsedKcal(p.cat) - meta.kcalEq * (productPct(p) / 100);
+          const fraction = tKcal > 0 ? Math.max(tKcal - usedOthers, 0) / tKcal : 0;
+          return Math.max(p.grams * fraction, 0);
+        })();
+        const isOver = eaten > Math.min(p.grams, remGramsBeforeThis) + 0.01;
+
+        html += '<div class="product">';
+        html += '<div class="product-fill" style="width:' + pct + '%;background:' + fillColor + '"></div>';
+        html += '<div class="product-content">';
+        html += '<div class="product-top">';
+        html += '<span class="product-name">' + p.name + '</span>';
+        html += '<div class="product-info">';
+        html += '<span class="product-limit">ліміт: ' + round1(remGrams) + ' ' + unit + '</span>';
+        html += '<span class="product-protein-full">білок: ' + p.protein + ' г / ' + p.grams + ' ' + unit + '</span>';
+        html += '</div></div>';
+        html += '<div class="product-controls">';
+        html += '<div class="gram-input-wrap">';
+        html += '<input type="number" min="0" step="1" inputmode="decimal" placeholder="0" value="' + (eaten || '') + '" data-eat-id="' + p.id + '">';
+        html += '<span class="unit-label">' + unit + ' з ' + p.grams + '</span>';
+        html += '</div>';
+        html += '<button class="max-btn" data-fill-max="' + p.id + '" data-max-val="' + round1(remGrams) + '">з\'їла все</button>';
+        html += '</div>';
+        if (eaten > 0) {
+          html += '<div class="product-eaten-protein">з\'їла: ' + eatenProtein + ' г білка</div>';
+        }
+        if (isOver) {
+          const overBy = round1(eaten - Math.min(p.grams, remGramsBeforeThis));
+          html += '<div class="remaining-note over">Перевищено ліміт категорії на ' + overBy + ' ' + unit + '</div>';
+        }
+        html += '</div></div>';
+      });
+    }
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('[data-eat-id]').forEach(el => {
+    el.addEventListener('change', () => setEatenGrams(el.getAttribute('data-eat-id'), parseFloat(el.value)));
+  });
+  container.querySelectorAll('[data-fill-max]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-fill-max');
+      setEatenGrams(id, round1((state.eatenGrams[id] || 0) + parseFloat(el.getAttribute('data-max-val'))));
+    });
+  });
+  container.querySelectorAll('[data-target-cat]').forEach(el => {
+    el.addEventListener('click', e => e.stopPropagation());
+    el.addEventListener('change', () => setTarget(el.getAttribute('data-target-cat'), parseFloat(el.value) || 0));
+  });
+  container.querySelectorAll('[data-toggle-cat]').forEach(el => {
+    el.addEventListener('click', () => toggleCollapse(el.getAttribute('data-toggle-cat')));
+  });
+}
+
+document.getElementById('reset-btn').addEventListener('click', resetDay);
+// при поверненні в застосунок оновлюємо екран (на випадок нового дня)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+
+loadState();
+render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
